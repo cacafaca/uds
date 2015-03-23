@@ -1,0 +1,1 @@
+UDS is designed to preform diferent tasks on workstations wich are devided and distributed by server whom are instructed by clients. Tasks are distributed as plugins.
