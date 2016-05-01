@@ -1,5 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Communication;
+using Uds.Communication;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,8 +16,7 @@ namespace Communication.Tests
         [TestMethod()]
         public void ListenAndAcceptTest()
         {
-            IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
-            IPAddress ipAddress = ipHostInfo.AddressList.Where(adr => adr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).First();
+            IPAddress ipAddress = Util.GetLocalIPAddress();
             if (ipAddress != null)
             {
                 IPEndPoint localEndPoint = new IPEndPoint(ipAddress, 11000);
@@ -27,34 +26,33 @@ namespace Communication.Tests
 
                 Socket sender = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 sender.Connect(localEndPoint);
-                byte[] expectedData = new byte[5] { 1, 2, 3, 4, 5 };
-                sender.Send(expectedData);
 
-                Socket receiver = connection.Accept();
-                byte[] receivedData = new byte[256];
-                int receivedCount = receiver.Receive(receivedData);
+                System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
+                var receiver = connection.Accept();
+                var elapsed = sw.Elapsed;
 
-                Assert.AreEqual(expectedData.Length, receivedCount, "Size is different.");
-                for (int i = 0; i < receivedCount; i++)
-                    Assert.AreEqual(expectedData[i], receivedData[i], "Data are not the same.");
+                System.Diagnostics.Debug.WriteLine("Time took to accept connection " + elapsed);
+                Assert.IsTrue(elapsed.Seconds < 1, "New connection is not accepted in timely manner fashon.");
             }
             else
                 Assert.Fail("Can't obtain IP address.");
         }
 
         [TestMethod()]
-        public void ListenTest()
+        public void Receive_Less_Then_ReadBufferSize_Bytes_Test()
         {
-            IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
-            IPAddress ipAddress = ipHostInfo.AddressList.Where(adr => adr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).First();
+            IPAddress ipAddress = Util.GetLocalIPAddress();
             if (ipAddress != null)
             {
                 IPEndPoint localEndPoint = new IPEndPoint(ipAddress, 11000);
 
-                Connection connection = new Connection();
-                connection.Listen(localEndPoint);
+                Connection localConnection = new Connection();
+                localConnection.Listen(localEndPoint);
 
-                byte[] expectedData = new byte[5] { 1, 2, 3, 4, 5 };
+                byte[] expectedData = new byte[localConnection.ReadBufferSize - 1];
+                for (int i = 0; i < expectedData.Length; i++)
+                    expectedData[i] = (byte)(i % byte.MaxValue);
+
                 new Task(() =>
                    {
                        Socket sender = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -63,13 +61,73 @@ namespace Communication.Tests
                        sender.Send(expectedData);
                    }).Start();
 
-                Socket receiver = connection.Accept();
-                byte[] receivedData = new byte[256];
-                int receivedCount = receiver.Receive(receivedData);
+                var receiver = localConnection.Accept();
+                byte[] receivedData = receiver.Receive();
 
-                Assert.AreEqual(expectedData.Length, receivedCount, "Size is different.");
-                for (int i = 0; i < receivedCount; i++)
-                    Assert.AreEqual(expectedData[i], receivedData[i], "Data are not the same.");
+                Assert.IsTrue(expectedData.SequenceEqual(receivedData), "Data are not the same.");
+            }
+            else
+                Assert.Fail("Can't obtain IP address.");
+        }
+
+        [TestMethod()]
+        public void Receive_More_Then_ReceiveBufferSize_Bytes_Test()
+        {
+            IPAddress ipAddress = Util.GetLocalIPAddress();
+            if (ipAddress != null)
+            {
+                IPEndPoint localEndPoint = new IPEndPoint(ipAddress, 11000);
+
+                Connection localConnection = new Connection();
+                localConnection.Listen(localEndPoint);
+
+                byte[] expectedData = new byte[localConnection.ReadBufferSize + 1];
+                for (int i = 0; i < expectedData.Length; i++)
+                    expectedData[i] = (byte)(i % byte.MaxValue);
+                new Task(() =>
+                {
+                    Socket remoteSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    System.Threading.Thread.Sleep(1000);
+                    remoteSocket.Connect(localEndPoint);
+                    remoteSocket.Send(expectedData);
+                }).Start();
+
+                var receiver = localConnection.Accept();
+                byte[] receivedData = receiver.Receive();
+
+                Assert.IsTrue(expectedData.SequenceEqual(receivedData), "Data are not the same.");
+            }
+            else
+                Assert.Fail("Can't obtain IP address.");
+        }
+
+        [TestMethod()]
+        public void Receive_Exactly_ReceiveBufferSize_Bytes_Test()
+        {
+            IPAddress ipAddress = Util.GetLocalIPAddress();
+            if (ipAddress != null)
+            {
+                IPEndPoint localEndPoint = new IPEndPoint(ipAddress, 11000);
+
+                Connection localConnection = new Connection();
+                localConnection.Listen(localEndPoint);
+
+                byte[] expectedData = new byte[localConnection.ReadBufferSize];
+                for (int i = 0; i < expectedData.Length; i++)
+                    expectedData[i] = (byte)(i % byte.MaxValue);
+
+                new Task(() =>
+                {
+                    Socket sender = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    System.Threading.Thread.Sleep(1000);
+                    sender.Connect(localEndPoint);
+                    sender.Send(expectedData);
+                }).Start();
+
+                var receiver = localConnection.Accept();
+                byte[] receivedData = receiver.Receive();
+
+                Assert.IsTrue(expectedData.SequenceEqual(receivedData), "Data are not the same.");
             }
             else
                 Assert.Fail("Can't obtain IP address.");
