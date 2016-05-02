@@ -21,15 +21,18 @@ namespace Communication.Tests
             {
                 IPEndPoint localEndPoint = new IPEndPoint(ipAddress, 11000);
 
-                Connection connection = new Connection();
-                connection.Listen(localEndPoint);
+                Connection localConnection = new Connection();
+                localConnection.Listen(localEndPoint);
 
-                Socket sender = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                sender.Connect(localEndPoint);
+                Socket remoteSender = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                remoteSender.Connect(localEndPoint);
 
                 System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
-                var receiver = connection.Accept();
+                var receiver = localConnection.Accept();
                 var elapsed = sw.Elapsed;
+
+                remoteSender.Close();
+                localConnection.Close();
 
                 System.Diagnostics.Debug.WriteLine("Time took to accept connection " + elapsed);
                 Assert.IsTrue(elapsed.Seconds < 1, "New connection is not accepted in timely manner fashon.");
@@ -64,6 +67,8 @@ namespace Communication.Tests
                 var receiver = localConnection.Accept();
                 byte[] receivedData = receiver.Receive();
 
+                localConnection.Close();
+
                 Assert.IsTrue(expectedData.SequenceEqual(receivedData), "Data are not the same.");
             }
             else
@@ -95,6 +100,8 @@ namespace Communication.Tests
                 var receiver = localConnection.Accept();
                 byte[] receivedData = receiver.Receive();
 
+                localConnection.Close();
+
                 Assert.IsTrue(expectedData.SequenceEqual(receivedData), "Data are not the same.");
             }
             else
@@ -124,8 +131,10 @@ namespace Communication.Tests
                     sender.Send(expectedData);
                 }).Start();
 
-                var receiver = localConnection.Accept();
-                byte[] receivedData = receiver.Receive();
+                var remoteConnection = localConnection.Accept();
+                byte[] receivedData = remoteConnection.Receive();
+
+                localConnection.Close();
 
                 Assert.IsTrue(expectedData.SequenceEqual(receivedData), "Data are not the same.");
             }

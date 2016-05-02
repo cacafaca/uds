@@ -34,6 +34,10 @@ namespace Uds.Communication
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Blocking receive.
+        /// </summary>
+        /// <returns>Returns array of bytes from remote socket.</returns>
         public byte[] Receive()
         {
             byte[] receiveBuffer = new byte[_ReadBufferSize];
@@ -44,7 +48,7 @@ namespace Uds.Communication
                 int oldResultBufferLength = resultBuffer.Length;
                 Array.Resize(ref resultBuffer, resultBuffer.Length + receivedCount);
                 Array.Copy(receiveBuffer, 0, resultBuffer, oldResultBufferLength, receivedCount);
-                if (receivedCount < _ReadBufferSize)
+                if (receivedCount < _ReadBufferSize || Socket.Available == 0)
                     break;
             }
             return resultBuffer;
@@ -52,20 +56,16 @@ namespace Uds.Communication
 
         private int _ReadBufferSize = 1024;
         public int ReadBufferSize { get { return _ReadBufferSize; } }
-      
+
 
         public Connection Accept()
         {
             return new Connection(Socket.Accept());
         }
 
-        /// <summary>
-        /// Is it active or not. Something like that.
-        /// </summary>
-        /// <returns></returns>
-        public int State()
+        public void Close()
         {
-            return int.MinValue;
+            Socket.Close();
         }
     }
 }

@@ -15,7 +15,7 @@ namespace Uds.Communication
 
         public int ActiveCount()
         {
-            return this.Where(conn => conn.State() == int.MinValue).Count();
+            throw new NotImplementedException();
         }
     }
 }

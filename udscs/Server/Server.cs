@@ -22,11 +22,6 @@ namespace Uds.Server
 
         void HandleNewRemoteConnection(Communication.Connection remoteConnection)
         {
-            Task.Factory.StartNew(() => ProccessRemoteConnection(remoteConnection));
-        }
-
-        private void ProccessRemoteConnection(Connection remoteConnection)
-        {
             var communicator = new Communicator(remoteConnection);
             communicator.Comunicate();
         }
