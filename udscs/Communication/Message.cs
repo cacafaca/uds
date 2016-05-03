@@ -4,27 +4,48 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
+using System.Runtime.Serialization;
+using System.Xml;
+using System.Xml.Schema;
 
 namespace Uds.Communication
 {
-    public class Message
+    [Serializable]
+    public class Message : IXmlSerializable
     {
-        [NonSerialized]
-        private IPEndPoint _From;
+        private byte[] _FromAddress;
+        private int _FromPort;
 
+        [XmlIgnore]
         public IPEndPoint From
         {
-            get { return _From; }
-            set { _From = value; }
+            get
+            {
+                return new IPEndPoint(new IPAddress(_FromAddress), _FromPort);
+            }
+            set
+            {
+                _FromAddress = value.Address.GetAddressBytes();
+                _FromPort = value.Port;
+            }
         }
 
-        [NonSerialized]
-        private IPEndPoint _To;
+        private byte[] _ToAddress;
+        private int _ToPort;
 
+        [XmlIgnore]
         public IPEndPoint To
         {
-            get { return _To; }
-            set { _To = value; }
+            get
+            {
+                return new IPEndPoint(new IPAddress(_ToAddress), _ToPort);
+            }
+            set
+            {
+                _ToAddress = value.Address.GetAddressBytes();
+                _ToPort = value.Port;
+            }
         }
 
         private object _Body;
@@ -32,7 +53,13 @@ namespace Uds.Communication
         public object Body
         {
             get { return _Body; }
-            set { _Body = value; }
+            set
+            {
+                if (value.GetType().IsDefined(typeof(SerializableAttribute), false))
+                    _Body = value;
+                else
+                    throw new ArgumentException("Body is not serializable.");
+            }
         }
 
         private long _Id;
@@ -87,12 +114,89 @@ namespace Uds.Communication
 
         public override int GetHashCode()
         {
-            return GetHashCode();
+            return new { From, To, Id, Body, MessageType }.GetHashCode();
+        }
+
+        public XmlSchema GetSchema()
+        {
+            return null;
+        }
+
+        public void ReadXml(XmlReader reader)
+        {
+            reader.MoveToContent();
+
+            bool emptyElement = reader.IsEmptyElement;
+            reader.ReadStartElement();
+            if (!emptyElement)
+            {
+                string tempValueString;
+                IPAddress tempIpAddress;
+                int tempInt;
+
+                tempValueString = reader.ReadElementContentAsString(nameof(_FromAddress), string.Empty);
+                if (IPAddress.TryParse(tempValueString, out tempIpAddress))
+                    _FromAddress = tempIpAddress.GetAddressBytes();
+                else
+                    _FromAddress = new byte[4];
+
+                tempValueString = reader.ReadElementContentAsString(nameof(_FromPort), string.Empty);
+                if (int.TryParse(tempValueString, out tempInt))
+                    _FromPort = tempInt;
+                else
+                    _FromPort = 0;
+
+                tempValueString = reader.ReadElementContentAsString(nameof(_ToAddress), string.Empty);
+                if (IPAddress.TryParse(tempValueString, out tempIpAddress))
+                    _ToAddress = tempIpAddress.GetAddressBytes();
+                else
+                    _ToAddress = new byte[4];
+
+                tempValueString = reader.ReadElementContentAsString(nameof(_ToPort), string.Empty);
+                if (int.TryParse(tempValueString, out tempInt))
+                    _ToPort = tempInt;
+                else
+                    _ToPort = 0;
+
+                _Body = reader.ReadElementContentAsObject(nameof(Body), string.Empty);
+
+                _Id = reader.ReadElementContentAsInt(nameof(Id), string.Empty);
+
+                _MessageType = (MessageType)reader.ReadElementContentAsInt(nameof(MessageType), string.Empty);
+            }
+
+
+        }
+
+        private string ByteAddressToString(byte[] address)
+        {
+            if (address != null)
+                return (new IPAddress(address)).ToString();
+            else
+                return string.Empty;
+        }
+
+        public void WriteXml(XmlWriter writer)
+        {
+            writer.WriteElementString(nameof(_FromAddress), ByteAddressToString(_FromAddress));
+            writer.WriteElementString(nameof(_FromPort), _FromPort.ToString());
+            writer.WriteElementString(nameof(_ToAddress), ByteAddressToString(_ToAddress));
+            writer.WriteElementString(nameof(_ToPort), _ToPort.ToString());
+
+            //writer.WriteElementString(nameof(Body), _Body.ToString());
+            var serializedBody = Uds.Common.Serialize<object>.SerializeToXmlStream(_Body);
+            writer.WriteStartElement(nameof(Body));
+            writer.WriteRaw(serializedBody.ToString());
+            writer.WriteEndElement();
+
+            writer.WriteElementString(nameof(Id), _Id.ToString());
+            writer.WriteElementString(nameof(MessageType), ((int)_MessageType).ToString());
         }
 
         public Message()
         {
-
+            _FromAddress = new byte[4];
+            _ToAddress = new byte[4];
         }
     }
 

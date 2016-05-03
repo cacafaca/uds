@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Net;
 using System.Xml.Serialization;
 using System.IO;
+using System.Collections.Generic;
 
 namespace Uds.Communication
 {
@@ -16,21 +17,15 @@ namespace Uds.Communication
             return Dns.GetHostEntry(Dns.GetHostName()).AddressList.Where(adr => adr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).First();
         }
 
-        public static Message DeserializeMessage(byte[] receivedData)
-        {
-            XmlSerializer xmlSerializer = new XmlSerializer(typeof(Message));
-            MemoryStream memoryStream = new MemoryStream(receivedData);
-            Message message = (Message)xmlSerializer.Deserialize(memoryStream);
-            return message;
-        }
-
         public static byte[] SerializeMessage(Message message)
         {
-            XmlSerializer xmlSerializer = new XmlSerializer(typeof(Message));
-            MemoryStream memoryStream = new MemoryStream();
-            xmlSerializer.Serialize(memoryStream, message);
-            byte[] serializedMessage = memoryStream.ToArray();
-            return serializedMessage;
+            return Uds.Common.Serialize<Message>.SerializeToXmlArray(message);
         }
+
+        public static Message DeserializeMessage(byte[] receivedData)
+        {
+            return Uds.Common.Serialize<Message>.DeserializeFromXmlArray(receivedData);
+        }
+
     }
 }
