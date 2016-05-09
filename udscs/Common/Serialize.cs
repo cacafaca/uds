@@ -9,22 +9,25 @@ using System.Xml.Serialization;
 
 namespace Uds.Common
 {
-    public class Serialize<T>
+    public class Serialize
     {
-        private static bool IsSerializable()
+        private static bool IsSerializable(Type type)
         {
-            return typeof(T).IsDefined(typeof(SerializableAttribute), false);
+            if (type != null)
+                return type.IsDefined(typeof(SerializableAttribute), false);
+            else
+                throw new ArgumentNullException();
         }
 
         #region Xml
 
-        public static Stream SerializeToXmlStream(T serializableObject)
+        public static Stream SerializeToXmlStream(object serializableObject)
         {
             if (serializableObject != null)
             {
-                if (IsSerializable())
+                if (IsSerializable(serializableObject.GetType()))
                 {
-                    XmlSerializer xmlSerializer = new XmlSerializer(typeof(T));
+                    XmlSerializer xmlSerializer = new XmlSerializer(serializableObject.GetType());
                     MemoryStream memoryStream = new MemoryStream();
                     xmlSerializer.Serialize(memoryStream, serializableObject);
                     memoryStream.Position = 0;
@@ -37,19 +40,19 @@ namespace Uds.Common
                 throw new ArgumentNullException();
         }
 
-        public static byte[] SerializeToXmlArray(T serializableObject)
+        public static byte[] SerializeToXmlArray(object serializableObject)
         {
             return ((MemoryStream)SerializeToXmlStream(serializableObject)).ToArray();
         }
 
-        public static T DeserializeFromXmlStream(Stream receivedData)
+        public static object DeserializeFromXmlStream(Stream receivedData, Type type)
         {
             if (receivedData != null)
             {
-                if (IsSerializable())
+                if (IsSerializable(type))
                 {
-                    XmlSerializer xmlSerializer = new XmlSerializer(typeof(T));
-                    T deserializedObject = (T)xmlSerializer.Deserialize(receivedData);
+                    XmlSerializer xmlSerializer = new XmlSerializer(type);
+                    object deserializedObject = xmlSerializer.Deserialize(receivedData);
                     return deserializedObject;
                 }
                 else
@@ -59,18 +62,18 @@ namespace Uds.Common
                 throw new ArgumentNullException();
         }
 
-        public static T DeserializeFromXmlArray(byte[] receivedData)
+        public static object DeserializeFromXmlArray(byte[] receivedData, Type type)
         {
-            return DeserializeFromXmlStream(new MemoryStream(receivedData));
+            return DeserializeFromXmlStream(new MemoryStream(receivedData), type);
         }
 
         #endregion Xml
 
-        public static Stream SerializeToBinaryFormatStream(T serializableObject)
+        public static Stream SerializeToBinaryFormatStream(object serializableObject, Type type)
         {
             if (serializableObject != null)
             {
-                if (IsSerializable())
+                if (IsSerializable(type))
                 {
                     BinaryFormatter binaryFormatter = new BinaryFormatter();
                     MemoryStream memoryStream = new MemoryStream();

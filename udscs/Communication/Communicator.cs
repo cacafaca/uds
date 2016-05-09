@@ -27,7 +27,7 @@ namespace Uds.Communication
             while (true)
             {
                 var receivedData = Connection.Receive();
-                Message message = Util.DeserializeMessage(receivedData);
+                Message message = (Message)Uds.Common.Serialize.DeserializeFromXmlArray(receivedData, typeof(Message));
             }
         }
 

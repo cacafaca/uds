@@ -38,7 +38,7 @@ namespace Common.Tests
             SerializableA a = new SerializableA();
             a.PublicMember = 10;
             var incrementedPrivateMember = a.IncrementPrivateMember();
-            var stream = Serialize<SerializableA>.SerializeToXmlStream(a);
+            var stream = Serialize.SerializeToXmlStream(a);
         }
 
         [TestMethod()]
@@ -50,7 +50,7 @@ namespace Common.Tests
             var incrementedPrivateMember = a.IncrementPrivateMember();
             try
             {
-                var stream = Serialize<NonSerializableA>.SerializeToXmlStream(a);
+                var stream = Serialize.SerializeToXmlStream(a);
             }
             catch (ArgumentException ex)
             {
@@ -66,8 +66,8 @@ namespace Common.Tests
             a.PublicMember = 20;
             a.IncrementPrivateMember();
             var i = a.IncrementPrivateMember();
-            Stream s = Serialize<SerializableA>.SerializeToXmlStream(a);
-            var copyOfA = Serialize<SerializableA>.DeserializeFromXmlStream(s);
+            Stream s = Serialize.SerializeToXmlStream(a);
+            NonSerializableA copyOfA = (NonSerializableA)Serialize.DeserializeFromXmlStream(s, typeof(SerializableA));
             Assert.AreEqual(a.PublicMember, copyOfA.PublicMember);
             i = a.IncrementPrivateMember();
             var i_copy = copyOfA.IncrementPrivateMember();

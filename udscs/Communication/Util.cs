@@ -16,16 +16,5 @@ namespace Uds.Communication
         {
             return Dns.GetHostEntry(Dns.GetHostName()).AddressList.Where(adr => adr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).First();
         }
-
-        public static byte[] SerializeMessage(Message message)
-        {
-            return Uds.Common.Serialize<Message>.SerializeToXmlArray(message);
-        }
-
-        public static Message DeserializeMessage(byte[] receivedData)
-        {
-            return Uds.Common.Serialize<Message>.DeserializeFromXmlArray(receivedData);
-        }
-
     }
 }

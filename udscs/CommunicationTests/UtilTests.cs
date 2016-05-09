@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
+using System.Runtime.Serialization;
 
 namespace Uds.Communication.Tests
 {
@@ -13,7 +14,6 @@ namespace Uds.Communication.Tests
     public class UtilTests
     {
         [Serializable]
-        [XmlInclude(typeof(PersonTest))]
         public class PersonTest
         {
             public string Name;
@@ -32,8 +32,8 @@ namespace Uds.Communication.Tests
                 MessageType = MessageType.System
             };
 
-            var serializedArray = Util.SerializeMessage(expectedMessage);
-            var deserializedMessage = Util.DeserializeMessage(serializedArray);
+            var serializedStream = Uds.Common.Serialize.SerializeToXmlStream(expectedMessage);
+            var deserializedMessage = Uds.Common.Serialize.DeserializeFromXmlStream(serializedStream, typeof(Message));
 
             Assert.AreEqual(expectedMessage, deserializedMessage);
         }

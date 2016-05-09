@@ -12,7 +12,8 @@ using System.Xml.Schema;
 namespace Uds.Communication
 {
     [Serializable]
-    public class Message : IXmlSerializable
+    [XmlRoot]
+    public class Message : IXmlSerializable 
     {
         private byte[] _FromAddress;
         private int _FromPort;
@@ -50,6 +51,7 @@ namespace Uds.Communication
 
         private object _Body;
 
+        [XmlElement]
         public object Body
         {
             get { return _Body; }
@@ -134,31 +136,31 @@ namespace Uds.Communication
                 IPAddress tempIpAddress;
                 int tempInt;
 
-                tempValueString = reader.ReadElementContentAsString(nameof(_FromAddress), string.Empty);
+                tempValueString = reader.ReadElementContentAsString(nameof(_FromAddress).Substring(1), string.Empty);
                 if (IPAddress.TryParse(tempValueString, out tempIpAddress))
                     _FromAddress = tempIpAddress.GetAddressBytes();
                 else
                     _FromAddress = new byte[4];
 
-                tempValueString = reader.ReadElementContentAsString(nameof(_FromPort), string.Empty);
+                tempValueString = reader.ReadElementContentAsString(nameof(_FromPort).Substring(1), string.Empty);
                 if (int.TryParse(tempValueString, out tempInt))
                     _FromPort = tempInt;
                 else
                     _FromPort = 0;
 
-                tempValueString = reader.ReadElementContentAsString(nameof(_ToAddress), string.Empty);
+                tempValueString = reader.ReadElementContentAsString(nameof(_ToAddress).Substring(1), string.Empty);
                 if (IPAddress.TryParse(tempValueString, out tempIpAddress))
                     _ToAddress = tempIpAddress.GetAddressBytes();
                 else
                     _ToAddress = new byte[4];
 
-                tempValueString = reader.ReadElementContentAsString(nameof(_ToPort), string.Empty);
+                tempValueString = reader.ReadElementContentAsString(nameof(_ToPort).Substring(1), string.Empty);
                 if (int.TryParse(tempValueString, out tempInt))
                     _ToPort = tempInt;
                 else
                     _ToPort = 0;
 
-                _Body = reader.ReadElementContentAsObject(nameof(Body), string.Empty);
+                string bodyAsString = reader.ReadElementContentAsString(nameof(Body), string.Empty);
 
                 _Id = reader.ReadElementContentAsInt(nameof(Id), string.Empty);
 
@@ -178,15 +180,15 @@ namespace Uds.Communication
 
         public void WriteXml(XmlWriter writer)
         {
-            writer.WriteElementString(nameof(_FromAddress), ByteAddressToString(_FromAddress));
-            writer.WriteElementString(nameof(_FromPort), _FromPort.ToString());
-            writer.WriteElementString(nameof(_ToAddress), ByteAddressToString(_ToAddress));
-            writer.WriteElementString(nameof(_ToPort), _ToPort.ToString());
+            writer.WriteElementString(nameof(_FromAddress).Substring(1), ByteAddressToString(_FromAddress));
+            writer.WriteElementString(nameof(_FromPort).Substring(1), _FromPort.ToString());
+            writer.WriteElementString(nameof(_ToAddress).Substring(1), ByteAddressToString(_ToAddress));
+            writer.WriteElementString(nameof(_ToPort).Substring(1), _ToPort.ToString());
 
             //writer.WriteElementString(nameof(Body), _Body.ToString());
-            var serializedBody = Uds.Common.Serialize<object>.SerializeToXmlStream(_Body);
+            var serializedBody = Uds.Common.Serialize.SerializeToXmlStream(_Body);
             writer.WriteStartElement(nameof(Body));
-            writer.WriteRaw(serializedBody.ToString());
+            writer.WriteRaw((new System.IO.StreamReader(serializedBody)).ReadToEnd());
             writer.WriteEndElement();
 
             writer.WriteElementString(nameof(Id), _Id.ToString());

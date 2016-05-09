@@ -57,6 +57,10 @@
     <Compile Include="UtilTests.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj">
+      <Project>{583dc95a-d2ac-49c0-8d74-859cc42c46a5}</Project>
+      <Name>Common</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Communication\Communication.csproj">
       <Project>{F1F872BA-520C-4FD4-A1A2-DB0C865B2CCE}</Project>
       <Name>Communication</Name>
